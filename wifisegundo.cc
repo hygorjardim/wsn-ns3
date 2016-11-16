@@ -37,6 +37,9 @@ NS_LOG_COMPONENT_DEFINE ("WirelessAnimationExample");
 int 
 main (int argc, char *argv[])
 {
+
+  //LogComponentEnable ("UdpEchoClientApplication", LOG_LEVEL_INFO);
+  //LogComponentEnable ("UdpEchoServerApplication", LOG_LEVEL_INFO);
   uint32_t nWifi = 20;
   CommandLine cmd;
   cmd.AddValue ("nWifi", "Number of wifi STA devices", nWifi);
@@ -101,12 +104,12 @@ main (int argc, char *argv[])
 
   MobilityHelper mobility;
   mobility.SetPositionAllocator ("ns3::GridPositionAllocator",
-                                 "MinX", DoubleValue (10.0),
-                                 "MinY", DoubleValue (10.0),
-                                 "DeltaX", DoubleValue (10.0),
-                                 "DeltaY", DoubleValue (10.0),
-                                 "GridWidth", UintegerValue (5),
-                                 "LayoutType", StringValue ("RowFirst"));
+                                 "MinX", DoubleValue (10.0), //
+                                 "MinY", DoubleValue (10.0), // 
+                                 "DeltaX", DoubleValue (10.0), // Distância entre nós
+                                 "DeltaY", DoubleValue (10.0), // Distância entre nós
+                                 "GridWidth", UintegerValue (5), // Quantidade de colunas em uma linha
+                                 "LayoutType", StringValue ("RowFirst")); // Definindo posições em linha
   mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
   mobility.Install (wifiStaNodes);
   mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
