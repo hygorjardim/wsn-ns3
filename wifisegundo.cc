@@ -110,6 +110,7 @@ main (int argc, char *argv[])
                                  "DeltaY", DoubleValue (10.0), // Distância entre nós
                                  "GridWidth", UintegerValue (5), // Quantidade de colunas em uma linha
                                  "LayoutType", StringValue ("RowFirst")); // Definindo posições em linha
+  // Mudança de parâmetros de RandomWalkingPosition para ConstantPosition
   mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
   mobility.Install (wifiStaNodes);
   mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
