@@ -95,7 +95,7 @@ int main (int argc, char *argv[])
 {
   std::string phyMode ("DsssRate1Mbps");
   double rss = -80;  // -dBm
-  uint32_t packetSize = 1000; // bytes
+  uint32_t packetSize = 1024; // bytes
   uint32_t numPackets = 1;
   double interval = 1.0; // seconds
   bool verbose = false;
