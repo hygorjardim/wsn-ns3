@@ -38,18 +38,19 @@ int
 main (int argc, char *argv[])
 {
 
-  //LogComponentEnable ("UdpEchoClientApplication", LOG_LEVEL_INFO);
-  //LogComponentEnable ("UdpEchoServerApplication", LOG_LEVEL_INFO);
+  LogComponentEnable ("UdpEchoClientApplication", LOG_LEVEL_INFO);
+  LogComponentEnable ("UdpEchoServerApplication", LOG_LEVEL_INFO);
   uint32_t nWifi = 20;
   CommandLine cmd;
   cmd.AddValue ("nWifi", "Number of wifi STA devices", nWifi);
-  
-
   cmd.Parse (argc,argv);
+  
+  
   NodeContainer allNodes;
   NodeContainer wifiStaNodes;
   wifiStaNodes.Create (nWifi);
   allNodes.Add (wifiStaNodes);
+  
   NodeContainer wifiApNode ;
   wifiApNode.Create (1);
   allNodes.Add (wifiApNode);
@@ -84,7 +85,6 @@ main (int argc, char *argv[])
   PointToPointHelper pointToPoint;
   pointToPoint.SetDeviceAttribute ("DataRate", StringValue ("5Mbps"));
   pointToPoint.SetChannelAttribute ("Delay", StringValue ("2ms"));
-
   NetDeviceContainer p2pDevices;
   p2pDevices = pointToPoint.Install (p2pNodes);
 
@@ -104,20 +104,25 @@ main (int argc, char *argv[])
 
   MobilityHelper mobility;
   mobility.SetPositionAllocator ("ns3::GridPositionAllocator",
-                                 "MinX", DoubleValue (10.0), //
-                                 "MinY", DoubleValue (10.0), // 
+                                 "MinX", DoubleValue (10.0), //onde inicia no eixo X
+                                 "MinY", DoubleValue (10.0), //onde inicia no eixo Y
                                  "DeltaX", DoubleValue (10.0), // Distância entre nós
                                  "DeltaY", DoubleValue (10.0), // Distância entre nós
                                  "GridWidth", UintegerValue (5), // Quantidade de colunas em uma linha
                                  "LayoutType", StringValue ("RowFirst")); // Definindo posições em linha
-  // Mudança de parâmetros de RandomWalkingPosition para ConstantPosition
   mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
   mobility.Install (wifiStaNodes);
+  mobility.SetPositionAllocator ("ns3::GridPositionAllocator",
+                                 "MinX", DoubleValue (30.0), //
+                                 "MinY", DoubleValue (25.0), //
+                                 "DeltaX", DoubleValue (0.0), // Distância entre nós
+                                 "DeltaY", DoubleValue (0.0), // Distância entre nós
+                                 "GridWidth", UintegerValue (1), // Quantidade de colunas em uma linha
+                                 "LayoutType", StringValue ("RowFirst"));
   mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
-
   mobility.Install (wifiApNode);
-  AnimationInterface::SetConstantPosition (p2pNodes.Get (1), 40, 35); 
-  AnimationInterface::SetConstantPosition (csmaNodes.Get (1), 50, 30); 
+  AnimationInterface::SetConstantPosition (p2pNodes.Get (1), 40, 50); 
+  AnimationInterface::SetConstantPosition (csmaNodes.Get (1), 50, 50); 
 
   Ptr<BasicEnergySource> energySource = CreateObject<BasicEnergySource>();
   Ptr<SimpleDeviceEnergyModel> energyModel = CreateObject<SimpleDeviceEnergyModel>();
@@ -159,10 +164,14 @@ main (int argc, char *argv[])
   UdpEchoClientHelper echoClient (csmaInterfaces.GetAddress (1), 9);
   echoClient.SetAttribute ("MaxPackets", UintegerValue (10));
   echoClient.SetAttribute ("Interval", TimeValue (Seconds (1.)));
-  echoClient.SetAttribute ("PacketSize", UintegerValue (1024));
+  echoClient.SetAttribute ("PacketSize", UintegerValue (2048));
   ApplicationContainer clientApps = echoClient.Install (wifiStaNodes);
   clientApps.Start (Seconds (2.0));
   clientApps.Stop (Seconds (15.0));
+
+  AsciiTraceHelper ascii;
+  csma.EnableAsciiAll (ascii.CreateFileStream ("wifi-segundo-real-tempo.tr"));
+  csma.EnablePcapAll ("wifi-segundo-real-tempo", false);
 
   Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
   Simulator::Stop (Seconds (15.0));
@@ -185,10 +194,8 @@ main (int argc, char *argv[])
     }
 
   anim.EnablePacketMetadata (); // Optional
-  anim.EnableIpv4RouteTracking ("roteavel-wireless.xml", Seconds (0), Seconds (5), Seconds (0.25)); //Optional
-  anim.EnableWifiMacCounters (Seconds (0), Seconds (10)); //Optional
-  anim.EnableWifiPhyCounters (Seconds (0), Seconds (10)); //Optional
   Simulator::Run ();
   Simulator::Destroy ();
   return 0;
 }
+ 
