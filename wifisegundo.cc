@@ -125,9 +125,7 @@ main (int argc, char *argv[])
                                  "LayoutType", StringValue ("RowFirst"));
   mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
   mobility.Install (wifiApNode);
-  AnimationInterface::SetConstantPosition (p2pNodes.Get (1), 40, 50); 
-  AnimationInterface::SetConstantPosition (csmaNodes.Get (1), 50, 50); 
-
+ 
   // energy module 
   Ptr<BasicEnergySource> energySource = CreateObject<BasicEnergySource>();
   Ptr<SimpleDeviceEnergyModel> energyModel = CreateObject<SimpleDeviceEnergyModel>();
