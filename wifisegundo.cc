@@ -1,4 +1,4 @@
-/* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
+	/* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -28,12 +28,9 @@
 #include "ns3/netanim-module.h"
 #include "ns3/basic-energy-source.h"
 #include "ns3/simple-device-energy-model.h"
+#include "ns3/flow-monitor-helper.h"
 
-// Bibliotecas para gerar o Tracing
-#include "ns3/object.h"
-#include "ns3/uinteger.h"
-#include "ns3/traced-value.h"
-#include "ns3/trace-source-accessor.h"
+
 
 using namespace ns3;
 
@@ -44,7 +41,7 @@ main (int argc, char *argv[])
 
   LogComponentEnable ("UdpEchoClientApplication", LOG_LEVEL_INFO);
   LogComponentEnable ("UdpEchoServerApplication", LOG_LEVEL_INFO);
-  uint32_t nWifi = 20;
+  uint32_t nWifi = 4;
   CommandLine cmd;
   cmd.AddValue ("nWifi", "Number of wifi STA devices", nWifi);
   cmd.Parse (argc,argv);
@@ -125,8 +122,9 @@ main (int argc, char *argv[])
                                  "LayoutType", StringValue ("RowFirst"));
   mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
   mobility.Install (wifiApNode);
- 
-  // energy module 
+  AnimationInterface::SetConstantPosition (p2pNodes.Get (1), 40, 50); 
+  AnimationInterface::SetConstantPosition (csmaNodes.Get (1), 50, 50); 
+
   Ptr<BasicEnergySource> energySource = CreateObject<BasicEnergySource>();
   Ptr<SimpleDeviceEnergyModel> energyModel = CreateObject<SimpleDeviceEnergyModel>();
 
@@ -160,31 +158,30 @@ main (int argc, char *argv[])
 
   // Install applications
 
-  UdpEchoServerHelper echoServer (9); // Porta que irá ouvir 
-  ApplicationContainer serverApps = echoServer.Install (csmaNodes.Get (1)); // Qual Node será instalado
+  UdpEchoServerHelper echoServer (9);
+  ApplicationContainer serverApps = echoServer.Install (csmaNodes.Get (1));
   serverApps.Start (Seconds (1.0));
   serverApps.Stop (Seconds (15.0));
   UdpEchoClientHelper echoClient (csmaInterfaces.GetAddress (1), 9);
-  echoClient.SetAttribute ("MaxPackets", UintegerValue (10));
-  echoClient.SetAttribute ("Interval", TimeValue (Seconds (1.)));
-  echoClient.SetAttribute ("PacketSize", UintegerValue (2048));
-  ApplicationContainer clientApps = echoClient.Install (wifiStaNodes); // Instala nos 20 nós estáticos 
+  echoClient.SetAttribute ("MaxPackets", UintegerValue (1));
+  echoClient.SetAttribute ("Interval", TimeValue (Seconds (1.0)));
+  echoClient.SetAttribute ("PacketSize", UintegerValue (8));
+  ApplicationContainer clientApps = echoClient.Install (wifiStaNodes);
   clientApps.Start (Seconds (2.0));
   clientApps.Stop (Seconds (15.0));
 
-  // Geração do Tracing
-
   AsciiTraceHelper ascii;
-  csma.EnableAsciiAll (ascii.CreateFileStream ("tracing-csma.tr"));
-  csma.EnablePcapAll ("tracing-csma", false);
+  csma.EnableAsciiAll (ascii.CreateFileStream ("wifi-segundo-real-tempo.tr"));
+  csma.EnablePcapAll ("wifi-segundo-real-tempo", false);
+    //Flow monitor 
   
-  pointToPoint.EnableAsciiAll (ascii.CreateFileStream ("tracing-ptp.tr"));
-  pointToPoint.EnablePcapAll ("tracing-ptp", false);
-  
+  Ptr<FlowMonitor> flowMonitor;
+  FlowMonitorHelper flowHelper;
+  flowMonitor = flowHelper.InstallAll();
+  NS_LOG_INFO ("Run Simulation.");
+
   Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
   Simulator::Stop (Seconds (15.0));
-
-  // NetAnim
 
   AnimationInterface anim ("animacao-wireless.xml"); // Mandatory
   for (uint32_t i = 0; i < wifiStaNodes.GetN (); ++i)
@@ -205,6 +202,9 @@ main (int argc, char *argv[])
 
   anim.EnablePacketMetadata (); // Optional
   Simulator::Run ();
+  
+  flowMonitor->SerializeToXmlFile("EsseFlowMonitor.xml", true, true);
+
   Simulator::Destroy ();
   return 0;
 }
