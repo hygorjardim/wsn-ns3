@@ -12,7 +12,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
+ * 
+ * Autor: Hygor Jardim da Silva, Castanhal - Pará, Brasil. 
+ * Contato: hygorjardim@gmail.com - https://hygorjardim.github.io/
+ * Universidade Federal do Pará - Campus Universitário de Castanhal
+ * Faculdade de Computação - FACOMP
+ * Laboratório de Desenvolvimento de Sistemas - LADES
  */
 #include <fstream>
 #include <iostream>
@@ -27,6 +32,7 @@
 #include "ns3/netanim-module.h"
 #include "ns3/olsr-module.h"
 #include "ns3/aodv-module.h"
+#include "ns3/dsr-module.h"
 #include "ns3/dsdv-module.h"
 
 // Bibliotecas para o FlowMonitor
@@ -46,19 +52,24 @@ int
 main (int argc, char *argv[])
 {
   CommandLine cmd;
-  std::string phyMode ("OfdmRate54Mbps");
+  std::string phyMode ("DsssRate11Mbps"); // Modo de Dados - DsssRate or OfdmRate
   cmd.Parse (argc, argv);
   bool Random = false;
   bool Velocity = false;
   bool ifAodv = false;
   bool ifOlsr = false;
+  bool ifStatic = true;
+  bool ifDsr = false;
   bool ifDsdv = false;
-  bool ifStatic = true;  
+  bool ifEco = true;
+  bool ifOnoff = false;   
   double speed = -8;
-  double distancex = 30;
-  double distancey = 30; // m 
-  uint32_t numNodes = 50;
-  //uint32_t sinkNode = 25;
+  double distance = 20; // m 
+  uint32_t numNodes = 25;
+  uint32_t sinkNode = 12;
+  uint32_t nSinks = 5;
+   uint16_t port = 9;
+  std::string rate = "1.512kbps";
   
   Time::SetResolution (Time::NS);
   LogComponentEnable ("UdpEchoClientApplication", LOG_LEVEL_INFO);
@@ -72,9 +83,9 @@ main (int argc, char *argv[])
 
   NodeContainer sensor;
   sensor.Create (numNodes);
-  NodeContainer sink = NodeContainer (sensor.Get(1));
+  NodeContainer sink = NodeContainer (sensor.Get(12));
   NodeContainer source;
-  //source.Add(sensor.Get(0));
+  source.Add(sensor.Get(0));
   source.Add(sensor.Get(1));
   source.Add(sensor.Get(2));
   source.Add(sensor.Get(3));
@@ -86,7 +97,6 @@ main (int argc, char *argv[])
   source.Add(sensor.Get(9));
   source.Add(sensor.Get(10));
   source.Add(sensor.Get(11));
-  source.Add(sensor.Get(12));
   source.Add(sensor.Get(13));
   source.Add(sensor.Get(14));
   source.Add(sensor.Get(15));
@@ -99,32 +109,6 @@ main (int argc, char *argv[])
   source.Add(sensor.Get(22));
   source.Add(sensor.Get(23));
   source.Add(sensor.Get(24));
-  source.Add(sensor.Get(25));
-  source.Add(sensor.Get(26));
-  source.Add(sensor.Get(27));
-  source.Add(sensor.Get(28));
-  source.Add(sensor.Get(29));
-  source.Add(sensor.Get(30));
-  source.Add(sensor.Get(31));
-  source.Add(sensor.Get(32));
-  source.Add(sensor.Get(33));
-  source.Add(sensor.Get(34));
-  source.Add(sensor.Get(35));
-  source.Add(sensor.Get(36));
-  source.Add(sensor.Get(37));
-  source.Add(sensor.Get(38));
-  source.Add(sensor.Get(39));
-  source.Add(sensor.Get(40));
-  source.Add(sensor.Get(41));
-  source.Add(sensor.Get(42));
-  source.Add(sensor.Get(43));
-  source.Add(sensor.Get(44));
-  source.Add(sensor.Get(45));
-  source.Add(sensor.Get(46));
-  source.Add(sensor.Get(47));
-  source.Add(sensor.Get(48));
-  source.Add(sensor.Get(49));
-
 
 // ----------------------------------------------------
 
@@ -143,10 +127,10 @@ main (int argc, char *argv[])
 
   // Add an upper mac and disable rate control
   WifiMacHelper wifiMac;
-  wifi.SetStandard (WIFI_PHY_STANDARD_80211a);
+  wifi.SetStandard (WIFI_PHY_STANDARD_80211b);
   wifi.SetRemoteStationManager ("ns3::ConstantRateWifiManager",
                                 "DataMode",StringValue (phyMode),
-                                "ControlMode",StringValue (phyMode));
+								"ControlMode",StringValue (phyMode));
   // Set it to adhoc mode
   wifiMac.SetType ("ns3::AdhocWifiMac");
   NetDeviceContainer devSensor = wifi.Install (wifiPhy, wifiMac, sensor);
@@ -157,9 +141,9 @@ main (int argc, char *argv[])
   mobility.SetPositionAllocator ("ns3::GridPositionAllocator",
                                  "MinX", DoubleValue (0.0), //onde inicia no eixo X
                                  "MinY", DoubleValue (0.0), //onde inicia no eixo Y
-                                 "DeltaX", DoubleValue (distancex), // Distância entre nós
-                                 "DeltaY", DoubleValue (distancey), // Distância entre nós
-                                 "GridWidth", UintegerValue (7), // Quantidade de colunas em uma linha
+                                 "DeltaX", DoubleValue (distance), // Distância entre nós
+                                 "DeltaY", DoubleValue (distance), // Distância entre nós
+                                 "GridWidth", UintegerValue (5), // Quantidade de colunas em uma linha
                                  "LayoutType", StringValue ("RowFirst")); // Definindo posições em linha
   mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
   mobility.Install (sensor);
@@ -205,12 +189,21 @@ if (Velocity) {
 
       stack.SetRoutingHelper (list);
       stack.Install (sensor);
-  }  
+  }
+
+  if (ifDsr){
+
+	  DsrMainHelper dsrMain;
+	  DsrHelper dsr;
+  	  stack.Install (sensor);
+      dsrMain.Install (dsr, sensor);
+
+  }
 
   if (ifDsdv){
 
-      DsdvHelper dsdv;
-      Ipv4ListRoutingHelper list;
+  	  DsdvHelper dsdv;
+  	  Ipv4ListRoutingHelper list;
       list.Add (dsdv, 1000);
 
       stack.SetRoutingHelper (list);
@@ -234,21 +227,53 @@ if (Velocity) {
 
   }
   
+  if (ifEco){
 
-  UdpEchoServerHelper echoServer (9);
+	  UdpEchoServerHelper echoServer (9);
 
-  ApplicationContainer serverApps = echoServer.Install (sensor.Get (1));
-  serverApps.Start (Seconds (1.0));
-  serverApps.Stop (Seconds (100.0));
+		  ApplicationContainer serverApps = echoServer.Install (sensor.Get (sinkNode));
+		  	serverApps.Start (Seconds (0));
+		  	serverApps.Stop (Seconds (100.0));
 
-  UdpEchoClientHelper echoClient (InterSensor.GetAddress (1), 9);
-  echoClient.SetAttribute ("MaxPackets", UintegerValue (1000));
-  echoClient.SetAttribute ("Interval", TimeValue (Seconds (0.09)));
-  echoClient.SetAttribute ("PacketSize", UintegerValue (1024));
+		  UdpEchoClientHelper echoClient (InterSensor.GetAddress (12), 9);
+			  echoClient.SetAttribute ("MaxPackets", UintegerValue (1200));
+			  echoClient.SetAttribute ("Interval", TimeValue (Seconds (0.09)));
+			  echoClient.SetAttribute ("PacketSize", UintegerValue (1024));
 
-  ApplicationContainer clientApps = echoClient.Install (source); 
-  clientApps.Start (Seconds (1.1));
-  clientApps.Stop (Seconds (100.0));
+		  ApplicationContainer clientApps = echoClient.Install (source); 
+		  	clientApps.Start (Seconds (0));
+		  	clientApps.Stop (Seconds (100.0));
+
+  }
+
+
+  
+
+
+  if (ifOnoff){
+
+	  double randomStartTime = (1 / 1) / nSinks; 
+
+	  for (uint32_t i = 0; i < nSinks; ++i)
+	    {
+	      PacketSinkHelper sink ("ns3::UdpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), port));
+	      ApplicationContainer apps_sink = sink.Install (sensor.Get (i));
+	      apps_sink.Start (Seconds (0.0));
+	      apps_sink.Stop (Seconds (100));
+
+	      OnOffHelper onoff1 ("ns3::UdpSocketFactory", Address (InetSocketAddress (InterSensor.GetAddress (i), port)));
+	      onoff1.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=1.0]"));
+	      onoff1.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=0.0]"));
+	      onoff1.SetAttribute ("PacketSize", UintegerValue (1024));
+	      onoff1.SetAttribute ("DataRate", DataRateValue (DataRate (rate)));
+
+	      ApplicationContainer apps1 = onoff1.Install (sensor.Get (i + numNodes - nSinks));
+	      apps1.Start (Seconds (0 + i * randomStartTime));
+	      apps1.Stop (Seconds (100 + i * randomStartTime));
+	    }
+
+  }
+
 
 
 
@@ -257,7 +282,7 @@ if (Velocity) {
     std::string fileNameWithNoExtension = "FlowVSThroughput_";
     std::string graphicsFileName        = fileNameWithNoExtension + ".png";
     std::string plotFileName            = fileNameWithNoExtension + ".plt";
-    std::string plotTitle               = "Throughput Histogram";
+    std::string plotTitle               = "Flow vs Throughput";
     std::string dataTitle               = "Throughput";
 
     // Instantiate the plot and set its title.
@@ -269,7 +294,7 @@ if (Velocity) {
     gnuplot.SetTerminal ("png");
 
     // Set the labels for each axis.
-    gnuplot.SetLegend ("Time(Seconds)", "Throughput(Mbps)");
+    gnuplot.SetLegend ("Flow", "Throughput");
 
      
    Gnuplot2dDataset dataset;
@@ -287,7 +312,7 @@ if (Velocity) {
     std::string fileNameWithNoExtension2 = "FlowVSJitter_";
     std::string graphicsFileName2      = fileNameWithNoExtension2 + ".png";
     std::string plotFileName2        = fileNameWithNoExtension2 + ".plt";
-    std::string plotTitle2           = "Jitter Histogram";
+    std::string plotTitle2           = "Flow vs Jitter";
     std::string dataTitle2           = "Jitter";
 
     Gnuplot gnuplot2 (graphicsFileName2);
@@ -295,7 +320,7 @@ if (Velocity) {
 
   gnuplot2.SetTerminal("png");
 
-  gnuplot2.SetLegend("Time(Seconds)", "Jitter(Seconds)");
+  gnuplot2.SetLegend("Flow", "Jitter");
 
   Gnuplot2dDataset dataset2;
   dataset2.SetTitle(dataTitle2);
@@ -311,7 +336,7 @@ if (Velocity) {
   std::string fileNameWithNoExtension3 = "FlowVSDelay_";
   std::string graphicsFileName3      = fileNameWithNoExtension3 + ".png";
   std::string plotFileName3        = fileNameWithNoExtension3 + ".plt";
-  std::string plotTitle3       = "Delay Histogram";
+  std::string plotTitle3       = "Flow vs Delay";
   std::string dataTitle3       = "Delay";
 
       Gnuplot gnuplot3 (graphicsFileName3);
@@ -319,7 +344,7 @@ if (Velocity) {
 
       gnuplot3.SetTerminal("png");
 
-      gnuplot3.SetLegend("Time(Seconds)", "Delay(Seconds)");
+      gnuplot3.SetLegend("Flow", "Delay");
 
       Gnuplot2dDataset dataset3;
       dataset3.SetTitle(dataTitle3);
@@ -330,8 +355,8 @@ if (Velocity) {
 
 //-------------------------Metodo-Animation-------------------------
 
-      AnimationInterface anim ("urbano-1.0.xml"); // Mandatory
-      //anim.SetBackgroundImage ("/home/bmo/repos/ns-3-allinone/ns-3-dev/map.png", 20, 20, 0.5, 0.5, 0.5);
+      AnimationInterface anim ("cenario1.xml"); // Mandatory
+      anim.SetBackgroundImage ("/home/bmo/repos/ns-3-allinone/ns-3-dev/map.png", 20, 20, 0.5, 0.5, 0.5);
       for (uint32_t i = 0; i < sensor.GetN (); ++i)
       {
         anim.UpdateNodeDescription (sensor.Get (i), "NODE"); // Optional
@@ -344,7 +369,7 @@ if (Velocity) {
       }
       anim.EnablePacketMetadata (); // Optional
 
-  Simulator::Stop (Seconds (100.1));
+  Simulator::Stop (Seconds (100.0));
   Simulator::Run ();
   
 //Gnuplot ...continued
@@ -386,7 +411,7 @@ if (Velocity) {
       Ptr<Ipv4FlowClassifier> classing = DynamicCast<Ipv4FlowClassifier> (fmhelper->GetClassifier());
       for (std::map<FlowId, FlowMonitor::FlowStats>::const_iterator stats = flowStats.begin (); stats != flowStats.end (); ++stats)
       {
-                        if(stats->first == 13){//IFFFFFFFFFFFFFFFFFFFFFFF
+                        if(stats->first == 20){//IFFFFFFFFFFFFFFFFFFFFFFF
         Ipv4FlowClassifier::FiveTuple fiveTuple = classing->FindFlow (stats->first);
         std::cout<<"Flow ID     : " << stats->first <<" ; "<< fiveTuple.sourceAddress <<" -----> "<<fiveTuple.destinationAddress<<std::endl;
         std::cout<<"Tx Packets = " << stats->second.txPackets<<std::endl;
@@ -420,7 +445,7 @@ if (Velocity) {
          Ptr<Ipv4FlowClassifier> classing2 = DynamicCast<Ipv4FlowClassifier> (fmHelper->GetClassifier());
          for(std::map<FlowId, FlowMonitor::FlowStats>::const_iterator stats2 = flowStats2.begin(); stats2 != flowStats2.end(); ++stats2)
          {
-                 if(stats2->first == 13){//IFFFFFFFFFFF
+                 if(stats2->first == 20){//IFFFFFFFFFFF
               Ipv4FlowClassifier::FiveTuple fiveTuple2 = classing2->FindFlow (stats2->first);
       std::cout<<"Flow ID : "<< stats2->first <<";"<< fiveTuple2.sourceAddress <<"------>" <<fiveTuple2.destinationAddress<<std::endl;
       std::cout<<"Tx Packets = " << stats2->second.txPackets<<std::endl;
@@ -454,7 +479,7 @@ if (Velocity) {
     Ptr<Ipv4FlowClassifier> classing3 = DynamicCast<Ipv4FlowClassifier> (fmHelper->GetClassifier());
     for(std::map<FlowId, FlowMonitor::FlowStats>::const_iterator stats3 = flowStats3.begin(); stats3 != flowStats3.end(); ++stats3)
     {
-                 if(stats3->first == 13){//IFFFFFFFFFFF
+                 if(stats3->first == 20){//IFFFFFFFFFFF
             Ipv4FlowClassifier::FiveTuple fiveTuple3 = classing3->FindFlow (stats3->first);
             std::cout<<"Flow ID : "<< stats3->first <<";"<< fiveTuple3.sourceAddress <<"------>" <<fiveTuple3.destinationAddress<<std::endl;
             localDelay = stats3->second.timeLastTxPacket.GetSeconds()-stats3->second.timeLastRxPacket.GetSeconds();
@@ -467,3 +492,23 @@ if (Velocity) {
        flowMon->SerializeToXmlFile("DelayMonitor.xml", true, true);
     }
   }
+
+// void DelayMonitor (FlowMonitorHelper* fmHelper, Ptr<FlowMonitor> flowMon, Gnuplot2dDataset Dataset3){
+  
+//   double delay = 0.0;
+//   flowMon->CheckForLostPackets(); 
+//   std::map<FlowId, FlowMonitor::FlowStats> flowStats3 = flowMon->GetFlowStats();
+//   Ptr<Ipv4FlowClassifier> classing3 = DynamicCast<Ipv4FlowClassifier> (fmHelper->GetClassifier());
+
+//   for (std::map<FlowId, FlowMonitor::FlowStats>::const_iterator stats3 = flowStats3.begin (); stats3 != flowStats3.end (); ++stats3){ 
+//       //Ipv4FlowClassifier::FiveTuple fiveTuple = classing3->FindFlow (stats3->first);
+//       delay = stats3->second.delaySum.GetSeconds ();
+      
+//       //if(stats3->first == 20) {
+//       Dataset3.Add((double)Simulator::Now().GetSeconds(), (double)delay);
+//       //}    
+//     }
+  
+//   //Tempo que será iniciado
+//   Simulator::Schedule(Seconds(1),&DelayMonitor, fmHelper, flowMon, Dataset3);
+// }
